@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genomics Enclave Demo</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#15181d; --muted:#5d6673; --line:#e2e5ea; --soft:#f0f2f5;
+  --accent:#1f5eff; --accent-ink:#ffffff; --ok:#137a3a; --ok-bg:#e5f4ea; --bad:#b42318; --bad-bg:#fdecea;
+  --warn:#8a5a00; --warn-bg:#fff4dc; --code:#0f1720; --code-ink:#d7e0ea; --chip:#eef2ff;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1116; --panel:#161a21; --ink:#e7ebf0; --muted:#98a2b0; --line:#262c36; --soft:#1c212a;
+  --accent:#6b93ff; --accent-ink:#0b0e13; --ok:#5cd18a; --ok-bg:#12291b; --bad:#ff8a80; --bad-bg:#2d1513;
+  --warn:#f0c060; --warn-bg:#2b2310; --code:#0a0d12; --code-ink:#cdd6e0; --chip:#1d2540; } }
+:root[data-theme="dark"]{
+  --bg:#0e1116; --panel:#161a21; --ink:#e7ebf0; --muted:#98a2b0; --line:#262c36; --soft:#1c212a;
+  --accent:#6b93ff; --accent-ink:#0b0e13; --ok:#5cd18a; --ok-bg:#12291b; --bad:#ff8a80; --bad-bg:#2d1513;
+  --warn:#f0c060; --warn-bg:#2b2310; --code:#0a0d12; --code-ink:#cdd6e0; --chip:#1d2540; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;font-weight:650}
+header .sub{color:var(--muted);font-size:12.5px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:var(--chip);font-size:12px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)} .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+main{max-width:1280px;margin:0 auto;padding:16px 20px 80px}
+.banner{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:14px}
+.strip{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer;position:relative}
+.stage:hover{border-color:var(--accent)}
+.stage .n{font-size:11px;color:var(--muted)} .stage .t{font-weight:600;font-size:13px}
+.stage .v{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage.live{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+section.card h2{font-size:15px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+section.card .why{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+.links{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
+.links a{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:3px 8px;background:var(--soft)}
+.links a::after{content:" ↗"}
+.enclave{font-size:12px;color:var(--muted);border-left:3px solid var(--accent);padding:2px 0 2px 8px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.02em}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;font-size:12.5px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;word-break:break-word}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+td.t{white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.neutral{background:var(--soft);color:var(--muted)}
+button{font:inherit;font-size:12.5px;border-radius:7px;border:1px solid var(--line);background:var(--soft);color:var(--ink);padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)} button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.console{background:var(--code);color:var(--code-ink);border-radius:10px;padding:10px;height:420px;overflow:auto;font:11.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all}
+.sticky{position:sticky;top:70px}
+.matrix td{text-align:center} .matrix td:first-child{text-align:left}
+.cell{min-width:120px}
+.cell button{width:100%}
+.res{display:block;margin-top:3px;font-size:11.5px}
+.big{font-size:22px;font-weight:650} .muted{color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,input{font:inherit;font-size:12.5px;padding:5px 8px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+pre.sql{background:var(--code);color:var(--code-ink);padding:10px;border-radius:8px;overflow:auto;max-height:260px;font-size:11.5px}
+.bar{height:8px;border-radius:4px;background:var(--accent)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:1100px){.grid{grid-template-columns:1fr}.sticky{position:static}.strip{grid-template-columns:repeat(3,1fr)}.split{grid-template-columns:1fr}}
+@media (max-width:600px){main{padding:12px 16px}.strip{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Genomics pipeline in a VAST enclave tenant</h1>
+  <div class="sub">the lab cluster · tenant <b>rad-lab-enclave</b> · 1000 Genomes 30x (open consent) · compute on client-n5</div></div>
+  <span class="chip" id="c-cluster"><span class="dot"></span>cluster</span>
+  <span class="chip" id="c-de"><span class="dot"></span>DataEngine</span>
+  <span class="chip" id="c-trino"><span class="dot"></span>Trino</span>
+  <span class="chip" id="c-runner"><span class="dot"></span>function</span>
+  <span style="flex:1"></span>
+  <a class="chip" id="gui-home" target="_blank" href="https://192.0.2.10/">Open VMS ↗</a>
+</header>
+<main>
+<div class="banner">Lab demonstration on public, open-consent data. It shows <b>controls</b> that inform a risk analysis; it is not a HIPAA compliance claim.
+The Data Engine trigger, CloudEvents and broker are real VAST Data Engine. The <b>function</b> runs on client-n5 in the DE handler shape, because no Kubernetes compute cluster is linked to this tenant.
+Timings come from a shared lab cluster (3 CNodes + 1 DBox) and are not a performance claim.</div>
+
+<div class="strip" id="strip"></div>
+
+<div class="grid">
+<div class="col">
+
+<section class="card" id="s-boundary">
+  <h2>1 · The enclave boundary</h2>
+  <p class="why">One tenant with its own VIP pool and identity provider. One view, presented over NFS, S3 and the database API, governed by an S3-native view policy.</p>
+  <div class="split"><dl class="kv" id="kv-tenant"></dl><dl class="kv" id="kv-policy"></dl></div>
+  <div class="links" id="l-boundary"></div>
+  <div class="enclave">Enclave map: export and mount isolation (server-side host allow-list), a separate access-control domain (the tenant's own provider), and root squash.</div>
+</section>
+
+<section class="card" id="s-identity">
+  <h2>2 · Who can do what · try it live</h2>
+  <p class="why">Each identity has one job, and every cell below is a real request sent now from n5. A deny counts only when the allow-path in the same column returns 200.</p>
+  <div class="scroll"><table class="matrix" id="matrix"></table></div>
+  <div class="links" id="l-identity"></div>
+  <div class="enclave">Enclave map: least privilege per role. Ingest can land files but cannot read them back. The analyst reads but cannot change anything. The auditor sees the audit trail and nothing in the cohort.</div>
+</section>
+
+<section class="card" id="s-ingest">
+  <h2>3 · Ingest → Data Engine trigger</h2>
+  <p class="why">An instrument or ingest service PUTs over S3 into <code>incoming/</code>. The element trigger <code>rle-cohort-landing</code> emits a CloudEvent per object. The index file lands last and acts as the completion marker.</p>
+  <div class="row" style="margin-bottom:8px"><span class="big" id="ev-total">–</span><span class="muted">CloudEvents on <code>rle-landing-events</code></span>
+    <span style="flex:1"></span><button onclick="loadEvents()">Refresh events</button></div>
+  <div class="scroll"><table id="events"></table></div>
+  <div class="links" id="l-dataengine"></div>
+</section>
+
+<section class="card" id="s-transform">
+  <h2>4 · Transform → VAST DB</h2>
+  <p class="why">The function reads each landed file over NFS from the same view, as uid 7101 (<code>rle-svc</code>). VCF goes to <code>variants</code> and <code>genotypes</code> (sorted on chrom, pos), CRAM to <code>cram_qc</code> via samtools, POD5 to <code>nanopore_runs</code>, and the population file to <code>samples</code>.</p>
+  <div class="split"><div class="scroll"><table id="tables"></table></div><div class="scroll"><table id="handlers"></table></div></div>
+  <div class="links" id="l-database"></div>
+</section>
+
+<section class="card" id="s-query">
+  <h2>5 · Ask the cohort</h2>
+  <p class="why">Live: rare (AF&lt;1%) PASS carriers in a gene's promoter or upstream window, by superpopulation. Trino over VAST DB, as the analyst.</p>
+  <div class="row"><select id="gene"><option>CHEK2</option><option>BCR</option><option>EWSR1</option><option>NF2</option><option>SMARCB1</option><option>MIF</option><option>TP53TG3</option></select>
+    <input id="gene-free" placeholder="or any chr22 gene" size="16"><button class="primary" onclick="carriers()">Run on VAST DB</button><span id="carriers-meta" class="muted"></span></div>
+  <div class="scroll" style="margin-top:8px"><table id="carriers"></table></div>
+  <h3 style="font-size:13px;margin:16px 0 6px">The same questions, measured three ways (latest run)</h3>
+  <p class="why" style="margin:0 0 6px">Each question runs three ways on the same view: VAST DB through Trino 478; the same tables written as Parquet files, read by Trino's Hive connector over S3; and bcftools 1.21 over NFS on the original files. Everything runs as the analyst, and the three answers are checked for identity.</p>
+  <div class="scroll"><table id="qtable"></table></div>
+</section>
+
+<section class="card" id="s-audit">
+  <h2>6 · Audit: who read sample X's CRAM?</h2>
+  <p class="why">Protocol auditing writes into a VAST DB table. Pick a sample: the analyst reads its CRAM over NFS (O_DIRECT, because a client-cache hit sends no READ to VAST and so leaves nothing to audit) and over S3, and then the auditor queries the trail.</p>
+  <div class="row"><select id="sample"></select><button class="primary" onclick="readThenAudit()">Read it as the analyst, then audit</button><span id="audit-meta" class="muted"></span></div>
+  <div class="scroll" style="margin-top:8px"><table id="who"></table></div>
+  <details style="margin-top:8px"><summary class="muted">Latest 40 audit rows for the tenant</summary><div class="scroll"><table id="audit"></table></div></details>
+  <div class="links" id="l-audit"></div>
+  <div class="enclave">Enclave map: tenant-level audit that names the user, protocol, operation, status and bytes. Denied attempts are recorded too. The auditor role cannot read the cohort, and the analyst cannot read the audit trail.</div>
+</section>
+
+<section class="card" id="s-controls">
+  <h2>7 · Controls, measured</h2>
+  <p class="why">Latest controls run: S3 identity policies, Tabular (VAST DB) access, NFS root squash, an identity policy enforced on an NFS uid, and the host allow-list.</p>
+  <div class="scroll"><table id="controls"></table></div>
+</section>
+
+<section class="card" id="s-snapshot">
+  <h2>8 · Reproducibility snapshot</h2>
+  <p class="why">One locked snapshot of the view freezes the VCF and CRAM objects <i>and</i> the VAST DB tables together, and stays readable through the SDK. Locked means delete is refused until it's unlocked. Indestructibility is armed cluster-wide, but it isn't used on this shared cluster.</p>
+  <div class="scroll"><table id="snaps"></table></div>
+  <div class="links" id="l-snapshots"></div>
+</section>
+
+<section class="card" id="s-catalog">
+  <h2>9 · VAST Catalog: the query for research computing</h2>
+  <p class="why">File count and bytes by extension per owner uid. Rows are scoped to the <b>caller's tenant</b>: the same SQL run as the enclave analyst sees only the enclave.</p>
+  <div class="row"><button onclick="copySql()">Copy SQL</button><span class="muted" id="copied"></span></div>
+  <pre class="sql" id="sql"></pre>
+  <div class="split"><div><b style="font-size:12px">As rle-analyst (enclave tenant)</b><div class="scroll"><table id="cat-enclave"></table></div></div>
+    <div><b style="font-size:12px">As the default-tenant reader (top 20)</b><div class="scroll"><table id="cat-default"></table></div></div></div>
+  <div class="links" id="l-catalog"></div>
+</section>
+
+<section class="card" id="s-ml">
+  <h2>10 · Hand-off to ML (illustrative)</h2>
+  <p class="why">Genotype dosages read from VAST DB into pandas feed PCA and logistic regression, which predict a sample's superpopulation on CPU. This is a toy and makes no research claim.</p>
+  <div class="split"><div id="ml-kpi"></div><div class="scroll"><table id="confusion"></table></div></div>
+  <div class="scroll" style="margin-top:8px"><table id="qc"></table></div>
+</section>
+
+<section class="card" id="s-versions">
+  <h2>11 · Shown here vs. a 5.4.3 cluster</h2>
+  <div class="scroll"><table id="versions"></table></div>
+</section>
+
+</div>
+<div class="col">
+<section class="card sticky">
+  <h2>Run the pipeline</h2>
+  <p class="why">Each button runs the real step and streams its output. Run everything starts from an empty cohort and takes about 20 minutes, most of it the bcftools side of Q4.</p>
+  <div class="btns" style="margin-bottom:8px">
+    <button class="primary" data-step="all">Run everything</button>
+    <button data-step="reset">Reset cohort</button>
+    <button data-step="land" data-arg="small">Land small files</button>
+    <button data-step="land" data-arg="vcf-raw">Land 28 GB VCF</button>
+    <button data-step="controls">Controls</button>
+    <button data-step="parquet">Export Parquet</button>
+    <button data-step="query">Query vs bcftools</button>
+    <button data-step="audit">Audit</button>
+    <button data-step="snapshot">Snapshot</button>
+    <button data-step="catalog">Catalog</button>
+    <button data-step="ml">ML</button>
+  </div>
+  <div class="console" id="console">Ready.</div>
+</section>
+</div>
+</div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const fmtB = b => b == null ? "–" : b > 1e12 ? (b/1e12).toFixed(2)+" TB" : b > 1e9 ? (b/1e9).toFixed(1)+" GB" : b > 1e6 ? (b/1e6).toFixed(1)+" MB" : b+" B";
+const fmtN = n => n == null ? "–" : Number(n).toLocaleString();
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pill = (txt, ok) => `<span class="pill ${ok === true ? "ok" : ok === false ? "bad" : "neutral"}">${esc(txt)}</span>`;
+async function j(url, opts) { const r = await fetch(url, opts); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+function table(el, cols, rows, num = []) {
+  el.innerHTML = `<tr>${cols.map((c,i) => `<th class="${num.includes(i)?"num":""}">${esc(c)}</th>`).join("")}</tr>` +
+    rows.map(r => `<tr>${r.map((v,i) => `<td class="${num.includes(i)?"num":""}">${v}</td>`).join("")}</tr>`).join("");
+}
+function links(id, arr) { $(id).innerHTML = (arr||[]).map(([t,u]) => `<a target="_blank" href="${u}">Open in VAST: ${esc(t)}</a>`).join(""); }
+
+const STAGES = [["s-ingest","Land","objects"],["s-ingest","Trigger","events"],["s-transform","Transform","rows"],["s-query","Query",""],
+  ["s-controls","Controls",""],["s-audit","Audit",""],["s-snapshot","Snapshot",""],["s-catalog","Catalog",""],["s-ml","ML",""]];
+function strip(d) {
+  const vals = {
+    Land: d.objects ? `${fmtN(d.objects.count)} obj · ${fmtB(d.objects.bytes)}` : "–",
+    Trigger: d.kafka_events_total != null ? `${fmtN(d.kafka_events_total)} CloudEvents` : "–",
+    Transform: d.tables ? `${fmtN(Object.values(d.tables).reduce((a,b)=>a+b,0))} rows` : "–",
+    Query: R.query ? `${R.query.data.questions.filter(q=>q.match).length}/${R.query.data.questions.length} match` : "–",
+    Controls: R.controls ? `${R.controls.data.filter(r=>r.pass===true).length}/${R.controls.data.length} pass` : "–",
+    Audit: R.audit ? `lag ${R.audit.data.audit_lag_seconds ?? "?"} s` : "–",
+    Snapshot: V && V.snapshots ? `${V.snapshots.length} locked` : "–",
+    Catalog: R.catalog ? `${R.catalog.data.enclave.rows.length} ext rows` : "–",
+    ML: R.ml ? `acc ${(R.ml.data.test_accuracy*100).toFixed(1)}%` : "–",
+  };
+  $("#strip").innerHTML = STAGES.map(([id,t],i) =>
+    `<div class="stage" onclick="document.getElementById('${id}').scrollIntoView({behavior:'smooth'})"><div class="n">${i+1}</div><div class="t">${t}</div><div class="v">${vals[t]}</div></div>`).join("");
+}
+function chip(id, ok, txt) { const e = $(id); e.querySelector(".dot").className = "dot " + (ok ? "ok" : "bad"); e.lastChild.textContent = " " + txt; }
+
+let V = null, D = {}, R = {};
+async function loadVms() {
+  V = await j("/api/vms");
+  chip("#c-cluster", V.cluster.state === "ONLINE", `${V.cluster.name} · ${V.cluster.state}`);
+  chip("#c-de", V.de.setup === "completed" && V.de.triggers.some(t=>t.status==="Ready"), `DataEngine · trigger ${V.de.triggers[0]?.status || "none"}`);
+  $("#gui-home").href = V.gui + "/";
+  const t = V.tenant, p = V.viewpolicy;
+  $("#kv-tenant").innerHTML = `<dt>Tenant</dt><dd>${esc(t.name)} (id ${t.id})</dd><dt>Data Engine</dt><dd>${t.data_engine_enabled ? "enabled" : "off"}</dd>
+    <dt>VIP pools</dt><dd>${V.pools.map(x=>`${esc(x.name)} <span class="mono">${x.ip_ranges.map(r=>r.join("–")).join(", ")}</span>`).join("<br>")}</dd>
+    <dt>Views</dt><dd>${V.views.map(v=>`<span class="mono">${esc(v.path)}</span> ${esc(v.protocols.join("+"))} · bucket <span class="mono">${esc(v.bucket)}</span>`).join("<br>")}</dd>
+    <dt>Encryption</dt><dd>${V.cluster.enable_encryption ? "on" : `${pill("not available on the lab cluster", null)} cluster encryption off; per-tenant encryption groups need it`}</dd>`;
+  $("#kv-policy").innerHTML = `<dt>View policy</dt><dd>${esc(p.name)} · flavor <b>${esc(p.flavor)}</b></dd>
+    <dt>Root squash</dt><dd class="mono">${esc(JSON.stringify(p.nfs_root_squash))}</dd><dt>No squash</dt><dd class="mono">${esc(JSON.stringify(p.nfs_no_squash))}</dd>
+    <dt>NFS hosts</dt><dd class="mono">${esc(p.nfs_read_write.join(", "))}</dd><dt>Audited</dt><dd>${esc((p.protocols||[]).join(", "))} · ${Object.entries(p.protocols_audit||{}).filter(([k,v])=>v).map(([k])=>k.replace(/_/g," ")).join(", ")}</dd>`;
+  links("#l-boundary", [...V.links.tenant, ...V.links.network, ...V.links.views, ...V.links.encryption]);
+  links("#l-identity", V.links.identity); links("#l-dataengine", V.links.dataengine); links("#l-database", V.links.database);
+  links("#l-audit", V.links.audit); links("#l-snapshots", V.links.snapshots); links("#l-catalog", V.links.catalog);
+  matrix();
+  table($("#snaps"), ["Snapshot","Locked","Indestructible","Expires","State"],
+    V.snapshots.map(s => [`<span class="mono">${esc(s.name)}</span>`, pill(s.locked ? "locked" : "no", s.locked), s.indestructible ? "yes" : "no", esc(s.expiration_time), esc(s.state)]));
+}
+async function loadData() {
+  try { D = await j("/api/data"); } catch (e) { D = {}; }
+  chip("#c-trino", D.trino === "running", `Trino ${D.trino || "?"}`);
+  chip("#c-runner", (D.runner||[]).length > 0, (D.runner||[]).length ? "function running" : "function idle");
+  $("#ev-total").textContent = fmtN(D.kafka_events_total);
+  const T = D.tables || {};
+  table($("#tables"), [`VAST DB table`, D.tables_source === "count(*)" ? "Rows (exact count)" : "Rows (table stats; can lag a bulk load)"], Object.entries(T).sort((a,b)=>b[1]-a[1]).map(([k,v]) => [`<span class="mono">genomics.${esc(k)}</span>`, fmtN(v)]), [1]);
+  strip(D);
+}
+async function loadEvents() {
+  const ev = await j("/api/events?n=12");
+  table($("#events"), ["When (UTC)","Event","Object","Who","From"], ev.map(e => [esc((e.time||"").slice(11,19)), esc(e.event), `<span class="mono">${esc((e.path||"").replace("rad-lab-enclave-cohort/",""))}</span>`, esc(e.principal), esc(e.ip)]));
+}
+async function loadResults() {
+  R = await j("/api/results");
+  if (R.run && R.run.data.transform) {
+    const h = R.run.data.transform.by_handler;
+    table($("#handlers"), ["Handler (latest run)","Objects","Rows","Seconds"], Object.entries(h).map(([k,d]) => [`<span class="mono">${esc(k)}</span>`, d.objects, fmtN(d.rows), d.seconds]), [1,2,3]);
+  }
+  if (R.query) {
+    const qs = R.query.data.questions;
+    const T = a => a ? a.map(x => x.toFixed(2)).join(" / ") : "–";
+    $("#qtable").innerHTML = `<tr><th>#</th><th>Question</th><th class="num">VAST DB (s)<br><span class="muted">run 1 / run 2</span></th>
+      <th class="num">Parquet on VAST<br>+ Trino (s)<br><span class="muted">run 1 / run 2</span></th>
+      <th class="num">bcftools on NFS (s)</th><th class="num">bcftools ÷ DB</th><th>Same answer</th></tr>` +
+      qs.map(q => { const db = Math.min(...q.db_seconds), fl = q.file_seconds[0];
+        return `<tr><td>${q.id}</td><td>${esc(q.question)}</td><td class="t">${T(q.db_seconds)}</td><td class="t">${T(q.lake_seconds)}</td>
+          <td class="t">${T(q.file_seconds)}</td><td class="t">${(fl/db).toFixed(fl/db < 10 ? 1 : 0)}×</td>
+          <td>${pill(q.match ? (q.lake_seconds ? "all 3 match" : "match") : "MISMATCH", q.match)}</td></tr>`; }).join("");
+    if (R.query.data.q1_sdk) $("#qtable").insertAdjacentHTML("beforeend", `<tr><td>Q1</td><td>Same question through the vastdb Python SDK (predicate pushdown, no SQL engine)</td><td class="t">${R.query.data.q1_sdk.seconds.toFixed(2)}</td><td class="t">–</td><td class="t">–</td><td class="t">–</td><td>${pill(R.query.data.q1_sdk.match_trino ? "match" : "MISMATCH", R.query.data.q1_sdk.match_trino)}</td></tr>`);
+  }
+  if (R.controls) table($("#controls"), ["Control","Identity","Expected","Got",""], R.controls.data.map(r => [esc(r.control), esc(r.identity), esc(r.expect), `<span class="mono">${esc(r.got)}</span>`, pill(r.pass === true ? "pass" : r.pass === false ? "FAIL" : "inconclusive", r.pass === true ? true : r.pass === false ? false : null)]));
+  if (R.run && R.run.data.host_allow_list) { const h = R.run.data.host_allow_list;
+    $("#controls").insertAdjacentHTML("beforeend", `<tr><td>NFS mount from a host not on the allow-list</td><td>${esc(h.from)}</td><td>${esc(h.expect)}</td><td class="mono">${esc(h.got)}</td><td>${pill(h.pass?"pass":"FAIL", h.pass)}</td></tr>`); }
+  if (R.catalog) {
+    const cols = ["uid","owner","ext","files","bytes"], m = rows => rows.map(r => [r[0], esc(r[1]), `<span class="mono">${esc(r[2])}</span>`, fmtN(r[3]), fmtB(r[4])]);
+    table($("#cat-enclave"), cols, m(R.catalog.data.enclave.rows), [3,4]); table($("#cat-default"), cols, m(R.catalog.data.cluster_top20.rows), [3,4]);
+  }
+  if (R.ml) { const m = R.ml.data;
+    $("#ml-kpi").innerHTML = `<div class="big">${(m.test_accuracy*100).toFixed(1)}%</div><div class="muted">held-out accuracy · ${fmtN(m.samples)} samples × ${fmtN(m.features)} SNVs · ${fmtN(m.rows_read)} genotype rows read in ${m.read_seconds} s · fit ${m.fit_seconds} s<br>${esc(m.model)}</div>`;
+    table($("#confusion"), ["true \\ predicted", ...m.labels], m.confusion.map((r,i) => [m.labels[i], ...r.map(v => v)]), [1,2,3,4,5]);
+    table($("#qc"), ["CRAM QC → dataframe","chr22 depth","mapped %","dup %","error rate"], m.cram_qc_frame.map(r => [r.sample_id, r.chr22_mean_depth, r.mapped_pct, r.duplicate_pct, r.error_rate]), [1,2,3,4]);
+    $("#sample").innerHTML = m.cram_qc_frame.map(r => `<option${r.sample_id==="NA12878"?" selected":""}>${r.sample_id}</option>`).join("");
+  }
+  strip(D);
+}
+const IDS = [["rle-ingest","ingest (instrument)"],["rle-analyst","analyst"],["rle-auditor","auditor"]];
+const ACTS = [["get","GET a CRAM (S3)"],["put","PUT into incoming/"],["delete","DELETE a CRAM"],["tables","List VAST DB tables"]];
+function matrix() {
+  const pol = Object.fromEntries((V.users||[]).map(u => [u.name, u]));
+  table($("#matrix"), ["Identity", ...ACTS.map(a=>a[1])], IDS.map(([id,label]) =>
+    [`<b>${label}</b><br><span class="muted mono">${id} · uid ${pol[id]?.uid ?? "?"}</span><br><span class="muted" style="font-size:11px">${esc((pol[id]?.policies||[]).join(", "))}</span>`,
+     ...ACTS.map(([a]) => `<div class="cell"><button onclick="tryIt(this,'${id}','${a}')">Try</button><span class="res"></span></div>`)]));
+}
+async function tryIt(btn, id, a) {
+  const res = btn.nextElementSibling; btn.disabled = true; res.textContent = "…";
+  try { const r = await j(`/api/try?identity=${id}&action=${a}`); res.innerHTML = pill(r.result, r.result.startsWith("200")) + ` <span class="muted">${r.ms} ms</span>`; }
+  catch (e) { res.textContent = "error"; } btn.disabled = false;
+}
+async function carriers() {
+  const g = ($("#gene-free").value.trim() || $("#gene").value); $("#carriers-meta").textContent = "running…";
+  try {
+    const r = await j(`/api/carriers?gene=${encodeURIComponent(g)}`);
+    if (r.error) { $("#carriers-meta").textContent = r.error; $("#carriers").innerHTML = ""; return; }
+    const rows = r.result.rows, max = Math.max(1, ...rows.map(x=>x[1]));
+    $("#carriers-meta").innerHTML = `${esc(r.gene)} upstream/promoter <span class="mono">${esc(r.window)}</span> · ${r.result.seconds} s on VAST DB`;
+    table($("#carriers"), ["Superpopulation","Carriers","Carrier genotypes",""], rows.map(x => [x[0], fmtN(x[1]), fmtN(x[2]), `<div class="bar" style="width:${Math.round(160*x[1]/max)}px"></div>`]), [1,2]);
+  } catch (e) { $("#carriers-meta").textContent = "error: " + e.message.slice(0,160); }
+}
+async function loadAudit() {
+  const a = await j("/api/audit?n=40");
+  table($("#audit"), ["Time (UTC)","Who","Proto","Op","Status","Path","Bytes"], a.rows.map(r => [esc(String(r[0]).slice(11,19)), esc(r[4] || r[5]), esc(r[1]), esc(r[2]), esc(r[3]), `<span class="mono">${esc(String(r[7]).replace("/rad-lab-enclave/cohort/",""))}</span>`, fmtB(r[8])]), [6]);
+  return a;
+}
+async function readThenAudit() {
+  const s = $("#sample").value; $("#audit-meta").textContent = `analyst reading ${s}…`;
+  const r = await j(`/api/read?sample=${s}`); const t0 = Date.now();
+  $("#audit-meta").textContent = `read at ${r.at_utc} UTC (16 MiB over NFS with O_DIRECT, plus 1 MiB over S3). Waiting for the audit trail…`;
+  for (let i = 0; i < 40; i++) {
+    const a = await loadAudit();
+    const hits = a.rows.filter(x => String(x[7]).endsWith(`/${s}.chr22.cram`) && ["READ","GET_OBJECT"].includes(x[2]));
+    const fresh = hits.filter(x => String(x[0]).slice(0,19) >= r.at_utc.replace(" ","T").slice(0,19).replace("T"," "));
+    const agg = {};
+    hits.forEach(x => { const k = [x[4]||x[5], x[1], x[2], x[3], x[6]].join("|"); agg[k] = agg[k] || {n:0,b:0,last:x[0]}; agg[k].n++; agg[k].b += Number(x[8]||0); });
+    table($("#who"), ["Who","Protocol","Op","Status","Client","Ops","Bytes","Last seen (UTC)"], Object.entries(agg).map(([k,v]) => { const p = k.split("|"); return [`<b>${esc(p[0])}</b>`, esc(p[1]), esc(p[2]), esc(p[3]), esc(p[4]), v.n, fmtB(v.b), esc(String(v.last).slice(11,19))]; }), [5,6]);
+    if (fresh.some(x => x[1].startsWith("NFS")) && fresh.some(x => x[1] === "S3")) { $("#audit-meta").textContent = `Both reads are in the audit trail, ${Math.round((Date.now()-t0)/1000)} s after the read (scan of the latest 40 rows).`; return; }
+    await new Promise(res => setTimeout(res, 8000));
+  }
+  $("#audit-meta").textContent = "Not visible yet. The audit trail is written asynchronously; refresh in a minute.";
+}
+async function copySql() { await navigator.clipboard.writeText($("#sql").textContent); $("#copied").textContent = "copied"; setTimeout(()=>$("#copied").textContent="",1500); }
+
+let running = false;
+document.querySelectorAll("button[data-step]").forEach(b => b.onclick = async () => {
+  if (running) return; const step = b.dataset.step, arg = b.dataset.arg || "";
+  if (step === "reset" && !confirm("Delete every object in incoming/ and drop the VAST DB tables?")) return;
+  if (step === "all" && !confirm("Run everything from an empty cohort (~20 min)? This resets the cohort first.")) return;
+  const con = $("#console"); con.textContent = `$ ${step} ${arg}\n`;
+  let r; try { r = await j(`/api/run/${step}?arg=${arg}`, {method:"POST"}); } catch (e) { con.textContent += e.message; return; }
+  running = true; document.querySelectorAll("button[data-step]").forEach(x => x.disabled = true);
+  const es = new EventSource(`/api/job/${r.job}`);
+  es.onmessage = m => { const d = JSON.parse(m.data);
+    if (d.line !== undefined) { con.textContent += d.line + "\n"; con.scrollTop = con.scrollHeight; }
+    if (d.done) { con.textContent += `\n[${d.rc === 0 ? "done" : "exit " + d.rc} in ${d.seconds}s]\n`; con.scrollTop = con.scrollHeight; es.close(); running = false;
+      document.querySelectorAll("button[data-step]").forEach(x => x.disabled = false); refreshAll(); } };
+});
+
+const VERSIONS = [
+  ["Tenant with its own VIP pools and local identity provider", "shown", "yes", "Same API surface in 5.4.3 (VMS swagger diff)"],
+  ["S3-native view policy presented over NFS (identity policy decides NFS access)", "measured", "yes", "flavor S3_NATIVE exists in 5.4.3; behaviour measured on 5.5.0-sp6 only"],
+  ["Root squash and server-side NFS host allow-list", "measured", "yes", "nfs_root_squash / nfs_read_write in 5.4.3"],
+  ["One view: NFS + S3 + DATABASE", "measured", "yes", "DATABASE protocol present in 5.4.3"],
+  ["S3 identity policies (per-user least privilege)", "measured", "yes", "s3policies + s3_policies_ids in 5.4.3"],
+  ["VAST DB, sorted tables, Python SDK, Trino", "measured", "yes · check client pairing", "Trino image pairs: 5.4 → trino-vast 475, 5.5 → 478. vastdb 2.1.0 SDK not tested against 5.4.3"],
+  ["Data Engine: element trigger → CloudEvents on internal Kafka", "measured", "yes (DE release for 5.4.3)", "github.com/vast-data/dataengine-cli has release v5.4.3-hf21. Prefix name filter present in 5.4.3 schemas. Licensing not checked"],
+  ["Data Engine functions on a linked Kubernetes cluster", "not shown", "yes, per CLI", "Function runs on n5 here. A compute cluster must be linked (kube API + mTLS)"],
+  ["Protocol audit → VAST DB table, read through Trino by a scoped auditor", "measured", "yes", "enable_vast_db_audit and vastauditlog in 5.4.3. Once enabled, it cannot be turned off"],
+  ["VAST Catalog, tenant-scoped by caller", "measured", "yes", "BIG_CATALOG_ADD_TENANT_PREDICATE present in 5.4.3 s3_tabular.cpp"],
+  ["Locked snapshot of files + tables, read as-of snapshot", "measured", "yes", "'locked' snapshot field in 5.4.3"],
+  ["Indestructible snapshots", "not exercised", "yes", "Present in both. Not used on a shared lab cluster (24 h unlock)"],
+  ["Per-tenant encryption group (EKM-backed)", "not possible on the lab cluster", "yes (encryptiongroups API)", "lab returns 405 'Creating an encryption group is not allowed' because cluster encryption is off. 5.5 source adds a per-tenant exclusive EKM model with no REST route on 5.5.0-sp6"],
+];
+function versions() { table($("#versions"), ["Capability","On lab (5.5.0-sp6)","On 5.4.3?","Evidence"], VERSIONS.map(r => [esc(r[0]), pill(r[1], r[1]==="measured" ? true : r[1]==="shown" ? true : null), esc(r[2]), `<span class="muted">${esc(r[3])}</span>`])); }
+
+async function refreshAll() {
+  await Promise.allSettled([loadVms(), loadResults()]); await loadData();
+  loadEvents().catch(()=>{}); loadAudit().catch(()=>{});
+}
+(async () => {
+  versions(); j("/api/snippet").then(s => $("#sql").textContent = s.sql);
+  await refreshAll(); carriers();
+  setInterval(loadData, 10000); setInterval(() => loadEvents().catch(()=>{}), 15000);
+})();
+</script>
+</body>
+</html>

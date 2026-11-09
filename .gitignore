@@ -1,0 +1,20 @@
+# secrets and per-site state (never committed)
+.env
+state/
+.live.token
+.live.pid
+.live-collect.pid
+live/state.json
+live/state.json.tmp
+# environments, staged public data, logs, scratch
+.venv/
+env
+bin/
+hepenv/
+stage/
+logs/
+results/
+__pycache__/
+*.pyc
+models/adfilter/*.pt
+logs-*.txt

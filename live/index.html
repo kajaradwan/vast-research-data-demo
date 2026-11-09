@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Data Services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&display=swap">
+<style>
+:root{--navy:#0E142C;--ink:#030024;--blue:#0060F0;--cyan:#1FD9FE;--light:#EDF1F5;--grey:#4B5170;--mute:#6B6F73;--pale:#C9D3E3;--warn:#FF8A3D;--mono:'Roboto Mono','Courier New',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#05081A;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{width:1920px;height:1080px;position:relative;transform-origin:center center;flex:none}
+.slide{position:absolute;inset:0;padding:128px;display:none;flex-direction:column;gap:44px;background:#FFFFFF}
+.slide.on{display:flex}
+.slide.dark{background:var(--navy);color:#FFFFFF}
+.slide.light{background:var(--light)}
+.slide.center{justify-content:center}
+.eyebrow{font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--blue)}
+.dark .eyebrow{color:var(--cyan)}
+h1{font-size:84px;font-weight:700;line-height:1.08;color:var(--navy)}
+h2{font-size:64px;font-weight:700;line-height:1.1}
+h2.big{font-size:96px;line-height:1.08}
+h3{font-size:34px;font-weight:700}
+.head{display:flex;flex-direction:column;gap:16px}
+.lead{font-size:34px;line-height:1.45;color:var(--pale);max-width:1400px}
+.body{font-size:28px;line-height:1.45;color:var(--grey)}
+.mono{font-family:var(--mono)}
+.row{display:flex;gap:24px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.grid2>*,.grid3>*{min-width:0}  /* equal columns: long code lines scroll inside the pane, not widen it */
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.card{flex:1;display:flex;flex-direction:column;gap:12px;background:var(--light);padding:32px;border-top:8px solid var(--blue)}
+.card.navytop{border-top-color:var(--navy)}
+.card .n{font-size:36px;font-weight:700;color:var(--blue)}
+.card p{font-size:26px;line-height:1.4;color:var(--grey)}
+.card .code{font-family:var(--mono);font-size:24px;line-height:1.5;color:var(--blue)}
+.bar{display:flex;gap:24px;align-items:center;background:var(--navy);color:#FFFFFF;padding:30px 44px;font-size:30px;line-height:1.4}
+.bar .ic{color:var(--cyan);font-size:40px;width:48px;text-align:center}
+.pill{font-size:26px;color:#FFFFFF;background:var(--blue);padding:10px 24px;border-radius:999px;white-space:nowrap}
+.pill.pale{background:var(--pale);color:var(--navy)}
+.pills{display:flex;gap:16px;flex-wrap:wrap}
+.lefty{display:flex;flex-direction:column;gap:10px;border-left:6px solid var(--cyan);padding:8px 32px}
+.lefty p{font-size:28px;line-height:1.4;color:var(--pale)}
+.foot{position:absolute;left:128px;bottom:56px;font-size:22px;color:var(--mute)}
+.dark .foot{color:#8C9BB5}
+.steprow{display:flex;gap:28px;align-items:center;background:var(--light);padding:16px 32px;font-size:28px;line-height:1.35}
+.steprow .n{font-size:36px;font-weight:700;color:var(--blue);width:48px}
+.who{font-size:22px;font-weight:700;color:#FFFFFF;background:var(--navy);padding:6px 18px;border-radius:999px;width:190px;text-align:center}
+.who.b{background:var(--blue)}.who.o{background:#FFFFFF;color:var(--blue);border:2px solid var(--blue)}
+/* code panes, loaded live from disk */
+pre.code{background:var(--navy);color:#E6ECF5;font-family:var(--mono);font-size:22px;line-height:1.45;padding:28px 32px;overflow:auto;white-space:pre}
+pre.code .k{color:var(--cyan)} pre.code .c{color:#8C9BB5} pre.code .s{color:#B9F3C9}
+.src{font-size:22px;color:var(--mute);font-family:var(--mono)}
+/* beat slides */
+.beat{display:grid;grid-template-columns:520px 1fr;grid-template-rows:minmax(0,1fr);gap:24px;flex:1;min-height:0}
+.slide.live{padding:96px 128px;gap:28px}
+.steps{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
+.step{display:flex;gap:18px;align-items:center;text-align:left;background:var(--light);border:none;border-left:8px solid var(--blue);padding:11px 20px;cursor:pointer;flex:none;font:inherit;color:var(--ink)}
+.step:hover{background:#DCE4EE}
+.step .num{font-size:30px;font-weight:700;color:var(--blue);width:34px}
+.step .lab{font-size:26px;font-weight:700;display:block}
+.step .cmd{font-family:var(--mono);font-size:20px;color:var(--grey);display:block;margin-top:4px}
+.step.run{background:var(--navy);color:#FFFFFF}.step.run .cmd{color:var(--pale)}
+.step.ok{border-left-color:#1FB57A}.step.bad{border-left-color:var(--warn)}
+.step.danger{border-left-color:var(--warn)}
+.term{background:#070B1C;color:#D7DEEA;font-family:var(--mono);font-size:20px;line-height:1.45;padding:24px 28px;overflow:auto;white-space:pre-wrap;min-height:0;height:100%}
+.term .hl{color:var(--cyan);font-weight:600}.term .warn{color:var(--warn);font-weight:600}
+.term .chg{color:#FFD479}.term .add{color:#7EE2A8}.term .del{color:#FF9C9C}.term .cmdl{color:#8C9BB5}
+.state{display:flex;gap:24px;align-items:stretch;background:var(--light);padding:18px 28px;font-size:22px;color:var(--ink)}
+.state .lbl{font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-size:20px;width:150px;line-height:1.3}
+.state table{border-collapse:collapse;flex:1;font-size:22px}
+.state th{text-align:left;color:var(--grey);font-weight:700;padding:2px 14px;border-bottom:2px solid var(--pale)}
+.state td{padding:4px 14px;font-family:var(--mono)}
+.state td.chg{color:var(--blue);font-weight:700}
+#hud{position:fixed;right:16px;bottom:12px;font:14px Arial;color:#8C9BB5;opacity:.7}
+#notes{position:fixed;left:0;right:0;bottom:0;max-height:38vh;overflow:auto;background:rgba(5,8,26,.94);color:#E6ECF5;font:18px/1.5 Arial;padding:18px 28px;display:none}
+
+/* vast-research-data-demo additions */
+.lefty.dk p{color:var(--grey)} .lefty.lt p{color:var(--grey);font-size:26px}
+.state .sub{color:var(--grey);letter-spacing:0;text-transform:none;font-weight:400;font-size:18px}
+.state .side{font-size:20px;color:var(--grey);width:330px;line-height:1.45}
+.state.col{flex-direction:column;gap:10px;flex:1;min-height:0;overflow:auto}
+.state.col .lbl{width:auto}
+.state .two{display:flex;gap:18px;align-items:flex-start}
+.state table.small{font-size:16px} .state table.small td{font-size:16px;padding:2px 6px;word-break:break-all} .state table.small th{font-size:15px;padding:2px 6px}
+.state td.chg{color:var(--blue);font-weight:700;background:#DCE8FF}
+table.vocab{border-collapse:collapse;font-size:30px;width:100%}
+table.vocab th{text-align:left;color:var(--blue);font-size:24px;letter-spacing:2px;text-transform:uppercase;padding:12px 24px;border-bottom:3px solid var(--blue)}
+table.vocab td{padding:20px 24px;border-bottom:2px solid var(--pale);line-height:1.35;color:var(--ink);vertical-align:top}
+table.vocab td:first-child{color:var(--grey);width:44%}
+.sfs{display:grid;grid-template-columns:1fr 1fr;gap:20px;background:var(--light);padding:18px 22px;min-height:0}
+table.arms{border-collapse:collapse;font-size:21px;width:100%}
+table.arms th{text-align:left;color:var(--grey);padding:4px 10px;border-bottom:2px solid var(--pale);font-size:18px}
+table.arms td{padding:8px 10px;border-bottom:1px solid var(--pale)} table.arms tr.chk td{color:var(--grey);font-style:italic}
+.sfs .note{font-size:18px;color:var(--grey);margin-top:12px} .sfs .ok{color:#128A56;font-weight:700} .sfs .warn{color:var(--warn);font-weight:700}
+.popbar{display:flex;gap:8px;margin-bottom:6px} .popbar button{font:600 18px Arial;padding:4px 14px;border:2px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer}
+.popbar button.on{background:var(--blue);color:#fff}
+svg.plot{width:100%;height:auto} svg.plot .grid{stroke:var(--pale);stroke-width:1} svg.plot .ax{font:16px Arial;fill:var(--grey)}
+svg.plot .syn{fill:var(--blue)} svg.plot .mis{fill:var(--warn)}
+.legend{font-size:17px;color:var(--grey)} .sw{display:inline-block;width:14px;height:14px;margin:0 6px 0 12px;vertical-align:-1px} .sw.syn{background:var(--blue)} .sw.mis{background:var(--warn)}
+.aucrow{display:flex;gap:10px;align-items:flex-end;height:220px;padding-top:10px}
+.aucb{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1} .aucb .v{font-size:16px;color:var(--ink)} .aucb .m{font-size:16px;color:var(--grey)}
+.aucb .bar2{width:100%;background:var(--blue)} .aucb .bar2.lo{background:var(--warn)}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 cover -->
+<section class="slide light" data-notes="">
+<img src="/vast-strip.png" alt="" style="position:absolute;left:0;top:0;width:374px;height:1080px;object-fit:cover">
+<div style="position:absolute;left:480px;top:128px;width:1312px;height:824px;display:flex;flex-direction:column;justify-content:space-between">
+<p class="eyebrow" style="font-size:24px;letter-spacing:4px">Research support · live</p>
+<div style="display:flex;flex-direction:column;gap:40px">
+<h1>What’s already on your cluster, switched off</h1>
+<p style="font-size:36px;line-height:1.4;color:var(--mute)">Turning VAST features you already run into tools for the researchers you support: four working examples on public data</p>
+<div class="pills"><span class="pill">Shared datasets</span><span class="pill">Site frequency spectrum</span><span class="pill">ICA-style landing</span><span class="pill">Event scoring on landing</span></div>
+</div>
+<div></div>
+</div>
+</section>
+
+<!-- 2 framing -->
+<section class="slide dark center" data-notes="">
+<p class="eyebrow">The idea</p>
+<h2 class="big">Research groups spend real time<br>on data plumbing.</h2>
+<p class="lead">Downloading the same references, converting the same files, writing the same glue. Here are a few places where that work could live in storage you already run.</p>
+</section>
+
+<!-- 3 what's there -->
+<section class="slide" data-notes="">
+<div class="head"><p class="eyebrow">In 5.4.3 and later, often switched off</p><h2>Six tools for research support</h2></div>
+<div class="grid3">
+<div class="card"><h3>VAST Catalog</h3><p>What is on disk, by lab and by file type, as a SQL table. VAST refreshes it from snapshots; it is often never queried.</p></div>
+<div class="card"><h3>VAST DB</h3><p>Tables that live next to the files, under the same access rules, queried from Trino, Spark or Python.</p></div>
+<div class="card"><h3>DataEngine</h3><p>Code that runs when data lands. In 5.4.3; enablement and a Kubernetes link to confirm with us.</p></div>
+<div class="card"><h3>S3</h3><p>A drop zone for instruments, collaborators and cloud tools, on the same files your NFS users see.</p></div>
+<div class="card"><h3>Snapshots</h3><p>Freeze a cohort or a paper’s inputs, files and tables together, so a result can be reproduced.</p></div>
+<div class="card"><h3>Protocol audit</h3><p>“Who read sample X?” answered from a table, with the identity and protocol: every read that reaches storage.</p></div>
+</div>
+</section>
+
+<!-- 4 how to read -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">How to read what follows</p><h2>Real system, lab scale, nothing hidden</h2></div>
+<div class="grid2" style="gap:20px">
+<div class="lefty dk"><p><b>A shared lab cluster</b> running 5.5.0-sp6, using only capabilities present in 5.4.3 per its API and source (not run on 5.4.3 here). Trino 478 here; 475 pairs with 5.4.</p></div>
+<div class="lefty dk"><p><b>The trigger, its events and the broker are DataEngine’s own.</b> The function runs as a stand-in consumer calling the same <span class="mono">handler(ctx, event)</span>, because no Kubernetes cluster is linked.</p></div>
+<div class="lefty dk"><p><b>Every timing is from a shared lab cluster and one client.</b> None is a performance claim.</p></div>
+<div class="lefty dk"><p><b>Public, open-licence data only:</b> 1000 Genomes 30x, ONT open data, ATLAS 13 TeV Open Data (CC0).</p></div>
+</div>
+<div class="state" data-state="tenant"></div>
+</section>
+
+<!-- 5 section: datasets -->
+<section class="slide dark center" data-notes="">
+<p class="eyebrow">1 · Getting PIs going</p>
+<h2 class="big">Who has four copies<br>of the same dataset?</h2>
+<p class="lead">Every group downloads the same references into its own home. The Catalog can show you where, in one query.</p>
+</section>
+
+<!-- 6 Catalog beat -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">Live · VAST Catalog, as the analyst</p><h2>The same corpora, held again and again</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+<div class="steps" data-steps="dupes,byext,verify"></div>
+<div class="state col" data-state="quotas"></div>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 7 datasets beat -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">The proposal · live</p><h2>One curated copy, read-only, mounted everywhere</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+<div class="steps" data-steps="datasets"></div>
+<div class="lefty lt"><p><b>One copy</b> of each public corpus: references, 1000 Genomes, ONT open data, ATLAS Open Data.</p></div>
+<div class="lefty lt"><p><b>Read-only over NFS</b> on every node; written only by a curator identity over S3 (here, the service account).</p></div>
+<div class="lefty lt"><p><b>A PI starts</b> with the data already there, and the Catalog shows who still keeps a private copy.</p></div>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 8 what it takes -->
+<section class="slide" data-notes="">
+<div class="head"><p class="eyebrow">On your cluster</p><h2>What /datasets would take</h2></div>
+<div class="row">
+<div class="card"><p class="n">1</p><h3>A view</h3><p><span class="mono">/datasets</span> in the default tenant, NFS + S3.</p></div>
+<div class="card"><p class="n">2</p><h3>A read-only policy</h3><p>Exported read-only to the Alpha and Beta nodes.</p></div>
+<div class="card"><p class="n">3</p><h3>A curator</h3><p>One identity that writes over S3, and nobody else.</p></div>
+<div class="card"><p class="n">4</p><h3>A Catalog grant</h3><p>Tabular read for whoever runs the duplicates query.</p></div>
+</div>
+<div class="bar"><span class="ic">?</span><span>All of it is in 5.4.3, per its API and source. The open question is ownership: you, research computing, or the PIs.</span></div>
+</section>
+
+<!-- 9 section: SFS -->
+<section class="slide dark center" data-notes="">
+<p class="eyebrow">2 · For population genetics</p>
+<h2 class="big">The site frequency spectrum,<br>in one query</h2>
+<p class="lead">A question from your field, asked of public data where it already lives.</p>
+</section>
+
+<!-- 10 SFS story -->
+<section class="slide" data-notes="">
+<div class="head"><p class="eyebrow">The question</p><h2>A folded SFS by superpopulation, synonymous vs missense</h2></div>
+<p class="lead" style="color:var(--ink,inherit)">1000 Genomes 30x, chromosome 22: 3,202 public genomes, and one question from your field.</p>
+<div class="bar"><span class="ic">◆</span><span>Three ways to the same answer: bcftools over the VCF, Trino over Parquet, Trino over VAST DB. Same files, same view, same analyst identity.</span></div>
+</section>
+
+<!-- 11 SFS config -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">This is the actual code</p><h2>The query, and the function that wrote its table</h2></div>
+<div class="grid2" style="flex:1;min-height:0">
+<div style="display:flex;flex-direction:column;gap:8px;min-height:0"><span class="src">sql/sfs.sql</span><pre class="code" data-file="sfs_sql" style="flex:1;font-size:17px"></pre></div>
+<div style="display:flex;flex-direction:column;gap:8px;min-height:0"><span class="src">functions/landing/main.py</span><pre class="code" data-file="landing" style="flex:1;font-size:17px"></pre></div>
+</div>
+</section>
+
+<!-- 12 SFS beat -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">Live · as the analyst</p><h2>Same answer, three ways</h2></div>
+<div class="beat">
+<div class="steps" data-steps="sfs_vastdb,sfs_parquet,sfs_files,sfs_check"></div>
+<div style="display:grid;grid-template-rows:minmax(0,0.9fr) minmax(0,1.1fr);gap:16px;min-height:0">
+<div class="term" data-term></div>
+<div class="sfs" data-sfs></div>
+</div>
+</div>
+</section>
+
+<!-- 13 what VAST adds -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">What a table adds here is not speed</p><h2>Land it, query it: no export job</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+<div class="steps" data-steps="land_vcf,sfs_landed,access"></div>
+<div class="lefty lt"><p><b>No export job.</b> The trigger's function writes the rows as the file lands. It could write Parquet just as well.</p></div>
+<div class="lefty lt"><p><b>One identity policy</b> covers NFS, S3 and VAST DB here, and Parquet on this view too.</p></div>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 14 section: ICA -->
+<section class="slide dark center" data-notes="">
+<p class="eyebrow">3 · For genomics workflows</p>
+<h2 class="big">ICA Base,<br>inside your walls</h2>
+<p class="lead">The landing pattern you know from Illumina Connected Analytics, on data that never leaves the cluster.</p>
+</section>
+
+<!-- 15 vocabulary -->
+<section class="slide" data-notes="">
+<div class="head"><p class="eyebrow">Two vocabularies, one pattern</p><h2>What each ICA piece is here</h2></div>
+<table class="vocab">
+<tr><th>In Illumina Connected Analytics</th><th>Here, on VAST</th></tr>
+<tr><td>Upload to the project (CLI, connector)</td><td>S3 PUT to the landing prefix, as an ingest identity that cannot read back</td></tr>
+<tr><td><b>Flow</b>: a pipeline that runs on new data</td><td><b>DataEngine</b>: an element trigger on <span class="mono">incoming/</span>, its CloudEvent, and a function</td></tr>
+<tr><td><b>Base</b>: SQL tables of results</td><td><b>VAST DB</b> tables, queried with Trino, Spark or Python</td></tr>
+<tr><td><b>Bench</b>: notebooks next to the data</td><td>Your Jupyter on Slurm, with the vastdb SDK or Trino</td></tr>
+<tr><td>Data in the vendor’s cloud platform</td><td>Data on your cluster, under your identities and your audit</td></tr>
+</table>
+</section>
+
+<!-- 16 trigger config -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">This is the actual trigger</p><h2>A Flow is a trigger plus a function</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+<div class="steps" data-steps="triggers"></div>
+<span class="src">functions/runner.py (the stand-in runtime)</span><pre class="code" data-file="runner" style="flex:1;font-size:15px"></pre>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 17 land live -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">Live · drop files, watch the tables fill</p><h2>Sequencer output lands; tables appear</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+<div class="steps" data-steps="land_live"></div>
+<div class="state col" data-state="genomics"></div>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 18 section: ADFilter -->
+<section class="slide dark center" data-notes="">
+<p class="eyebrow">4 · For physics ML</p>
+<h2 class="big">Score every event<br>as it lands</h2>
+<p class="lead">Event files land; a function scores every event with an autoencoder; the scores are one SQL query away. Our model is a stand-in. We would like to run yours.</p>
+</section>
+
+<!-- 19 ADFilter config -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">This is the actual code</p><h2>The function, and what it did</h2></div>
+<div class="grid2" style="flex:1;min-height:0">
+<div style="display:flex;flex-direction:column;gap:8px;min-height:0"><span class="src">functions/adfilter/handler.py</span><pre class="code" data-file="adfilter" style="flex:1;font-size:16px"></pre></div>
+<div style="display:flex;flex-direction:column;gap:8px;min-height:0"><span class="src">sql/hep_pipeline.sql</span><pre class="code" data-file="pipe_sql" style="flex:1;font-size:16px"></pre></div>
+</div>
+</section>
+
+<!-- 20 ADFilter beat -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">Live · as the analyst</p><h2>Land events, then ask in SQL</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+<div class="steps" data-steps="land_hep,hep_pipeline"></div>
+<div class="state col" data-state="hep"></div>
+<div class="lefty lt"><p><b>Bring your model.</b> The function loads a weights file. Send us your trained autoencoder and we run it through the same trigger, on events you choose.</p></div>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 21 questions -->
+<section class="slide light" data-notes="">
+<div class="head"><p class="eyebrow">Questions for you</p><h2>What would help you most?</h2></div>
+<div style="display:flex;flex-direction:column;gap:22px">
+<div class="steprow"><span class="n">1</span><span>Which PIs are you onboarding first, and what blocks them today?</span></div>
+<div class="steprow"><span class="n">2</span><span>Would a curated, read-only <span class="mono">/datasets</span> area be welcome, and who would own it: you, research computing, or the PIs?</span></div>
+<div class="steprow"><span class="n">3</span><span>Do your genomics users query multi-sample VCFs with bcftools, or have they moved to something columnar?</span></div>
+<div class="steprow"><span class="n">4</span><span>Would you send us a trained autoencoder to run through the same trigger, on events you choose?</span></div>
+<div class="steprow"><span class="n">5</span><span>Is a Kubernetes compute cluster anywhere near Beta? DataEngine functions need one linked.</span></div>
+</div>
+</section>
+
+<!-- 22 backup divider -->
+<section class="slide dark center" data-notes="">
+<p class="eyebrow">Backup</p>
+<h2 class="big">Our stand-in model</h2>
+<p class="lead">Only if asked: what the toy autoencoder is, how it was graded, and where it fails.</p>
+</section>
+
+<!-- 23 ADFilter story -->
+<section class="slide" data-notes="">
+<div class="head"><p class="eyebrow">Backup · what runs inside our stand-in</p><h2>The rapidity-mass matrix, scored by an autoencoder</h2></div>
+<div class="row">
+<div class="card"><p class="n">36 × 36</p><h3>RMM per event</h3><p>MET + 10 jets + 10 b-jets + 5 μ + 5 e + 5 γ. E<sub>T</sub>, m<sub>T</sub> and masses scaled by √s; rapidity terms by C = 0.15.</p></div>
+<div class="card"><p class="n">1,287</p><h3>inputs</h3><p>36² − 9: the nine invariant masses you bin in are left out, to limit sculpting of the search masses, as in the ATLAS search.</p></div>
+<div class="card"><p class="n">1287→200</p><h3>autoencoder</h3><p>1287-800-400-200 and back, leaky ReLU, MSE loss: trained once, offline, on 210k tt̄ events, 5 min on CPU.</p></div>
+<div class="card"><p class="n">ln(MSE)</p><h3>score</h3><p>Reconstruction loss per event, numpy only in the function. A toy model: its cuts are not ATLAS’s.</p></div>
+</div>
+<div class="bar"><span class="ic">◆</span><span>Data: ATLAS 13 TeV Open Data 2020, 1-lepton (CC0). SM tt̄ to train and test; Z′→tt̄ at 12 masses from 0.4 to 3 TeV as the “anomaly”.</span></div>
+</section>
+
+<!-- 24 ADFilter honest -->
+<section class="slide" data-notes="">
+<div class="head"><p class="eyebrow">Backup · what the toy shows, and what it doesn’t</p><h2>A pipeline demo, not a physics result</h2></div>
+<div class="grid2">
+<div class="card"><h3>Separation grows with Z′ mass</h3><div class="auc" data-auc></div><p style="font-size:22px">AUC, held-out SM tt̄ vs Z′→tt̄, by Z′ mass (GeV). 0.5 is chance.</p></div>
+<div class="card"><h3>What it actually ranks</h3><p>In every m<sub>jb</sub> bin it puts hard, high-mass Z′ first: of the 72 Z′ in the 0–200 GeV top 100, 62 are ≥ 1.5 TeV. That looks like enrichment only where a bin has room (live set: 28.5% → 72%).</p><p>Against a tt̄-only background with all 12 Z′ masses injected together, the top-1% cut lowers cross-section-weighted purity (6.2% → 4.5%): bookkeeping, not sensitivity.</p><p>ATLAS trained on data. We trained on tt̄ MC to grade with truth, so a cut set on MC selects 0.13% of real data, not 1%.</p></div>
+</div>
+</section>
+
+<!-- 25 per-bin -->
+<section class="slide live" data-notes="">
+<div class="head"><p class="eyebrow">Backup · grading the toy with truth labels</p><h2>Top 100 per m<sub>jb</sub> bin</h2></div>
+<div class="beat">
+<div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+<div class="steps" data-steps="top,top_events"></div>
+</div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+<!-- 26 operator -->
+<section class="slide dark live" data-notes="">
+<div class="head"><p class="eyebrow">Operator</p><h2 style="color:#fff">Reset and teardown</h2></div>
+<div class="beat">
+<div class="steps" data-steps="status,reset,teardown"></div>
+<div class="term" data-term></div>
+</div>
+</section>
+
+
+</div></div>
+<div id="hud"></div>
+<div id="notes"></div>
+<script>
+(function () {
+  "use strict";
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var stage = document.getElementById("stage"), hud = document.getElementById("hud"), notes = document.getElementById("notes");
+  var cur = 0, steps = {}, busy = false, stateTimer = null, prevTables = {}, prevKafka = {};
+  var CONFIRM = { teardown: "Delete everything this demo made on the cluster and the client (about 2 minutes)? The deck stops working after it.",
+                  reset: "Back to demo-start: removes what the live beats added (about 25 s)?" };
+  var POPS = ["AFR", "AMR", "EAS", "EUR", "SAS"], pop = "AFR";
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    stage.style.transform = "scale(" + s + ")";
+  }
+  window.addEventListener("resize", fit); fit();
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function num(n) { return n === null || n === undefined ? "–" : Number(n).toLocaleString("en-US"); }
+
+  function hl(t) {  // tiny highlighter for Python and SQL
+    return esc(t).split("\n").map(function (l) {
+      if (/^\s*(#|--)/.test(l)) return '<span class="c">' + l + "</span>";
+      l = l.replace(/("""|'''|"[^"]*"|'[^']*')/g, '<span class="s">$1</span>');
+      return l.replace(/\b(def|import|from|return|for|in|if|else|elif|with|as|SELECT|FROM|WHERE|GROUP BY|ORDER BY|JOIN|ON|WITH|AND|NOT|CASE|WHEN|THEN|END|count|sum|least|HAVING)\b/g,
+                       '<span class="k">$1</span>');
+    }).join("\n");
+  }
+
+  function classify(line) {
+    if (/^\$ /.test(line)) return "cmdl";
+    if (/REFUSED|DIFFER|FAIL|Traceback|Error|error|denied/i.test(line)) return /REFUSED/.test(line) ? "chg" : "warn";
+    if (/same answer|_DONE|\[exit 0\]|OK\b|sweep: clean|gone/.test(line)) return "hl";
+    if (/^PUT |^wrote |^put /.test(line)) return "add";
+    return "";
+  }
+
+  function renderSteps(slide) {
+    slide.querySelectorAll("[data-steps]").forEach(function (box) {
+      if (box.dataset.done) return;
+      box.dataset.done = "1";
+      box.dataset.steps.split(",").forEach(function (id, i) {
+        var b = document.createElement("button"), s = steps[id] || [id, ""];
+        b.className = "step" + (CONFIRM[id] ? " danger" : "");
+        b.dataset.step = id;
+        b.innerHTML = '<span class="num">' + (i + 1) + '</span><span><span class="lab">' + esc(s[0]) +
+          '</span><span class="cmd">' + esc(s[1]) + "</span></span>";
+        b.addEventListener("click", function () { run(slide, b, id); });
+        box.appendChild(b);
+      });
+    });
+  }
+
+  function run(slide, btn, id) {
+    if (busy) return;
+    if (CONFIRM[id] && !window.confirm(CONFIRM[id])) return;
+    var term = slide.querySelector("[data-term]");
+    busy = true; btn.classList.remove("ok", "bad"); btn.classList.add("run");
+    term.innerHTML = "";
+    var buf = "";
+    function emit(text) {
+      buf += text;
+      var parts = buf.split("\n"); buf = parts.pop();
+      parts.forEach(function (line) {
+        var d = document.createElement("div"), c = classify(line);
+        if (c) d.className = c;
+        d.textContent = line || " ";
+        term.appendChild(d);
+      });
+      term.scrollTop = term.scrollHeight;
+    }
+    fetch("/api/run/" + id, { method: "POST" }).then(function (r) {
+      if (!r.body || !r.body.getReader) return r.text().then(function (t) { emit(t + "\n"); return t; });
+      var reader = r.body.getReader(), dec = new TextDecoder(), all = "";
+      function pump() {
+        return reader.read().then(function (x) {
+          if (x.done) { emit("\n"); return all; }
+          var t = dec.decode(x.value, { stream: true }); all += t; emit(t); return pump();
+        });
+      }
+      return pump();
+    }).then(function (all) {
+      var m = /\[exit (\d+)\]/.exec(all || "");
+      btn.classList.add(m && m[1] === "0" ? "ok" : "bad");
+    }).catch(function (e) { emit("\n(connection lost: " + e + ")\n"); btn.classList.add("bad"); })
+      .then(function () { busy = false; btn.classList.remove("run"); refreshState(); refreshSfs(); });
+  }
+
+  // ---------- live panels (live/collect.py -> /api/state)
+  function cell(k, v, prev) {
+    var moved = prev !== undefined && prev !== v;
+    return "<tr><td>" + esc(k) + '</td><td class="' + (moved ? "chg" : "") + '">' + num(v) + "</td></tr>";
+  }
+  function panel(kind, s) {
+    var v = s.vms || {}, t = s.tables || {}, k = s.kafka || {}, L = s.latest || {};
+    var lbl = function (a, b) { return '<span class="lbl">' + a + '<br><span class="sub">' + b + "</span></span>"; };
+    if (kind === "tenant") {
+      if (v.error) return lbl("Cluster", "read from VMS") + "<span>VMS not answering: " + esc(v.error) + "</span>";
+      var rows = (v.views || []).map(function (x) {
+        return "<tr><td>" + esc(x.path) + "</td><td>" + esc((x.protocols || []).join(" + ")) + "</td><td>" + esc(x.bucket || "–") + "</td></tr>";
+      }).join("");
+      var tr = (v.triggers || []).map(function (x) { return esc(x.name) + " · " + esc(x.status); }).join("<br>");
+      return lbl("On the cluster now", "read from VMS · " + esc(atText(s))) +
+        (v.exists ? "<table><tr><th>View</th><th>Protocols</th><th>Bucket</th></tr>" + rows + "</table>" : "<span>Tenant not built</span>") +
+        '<span class="side">release ' + esc(v.release || "") + "<br>" + esc(v.state || "") + "<br><b>DataEngine triggers</b><br>" + tr + "</span>";
+    }
+    if (kind === "genomics" || kind === "hep") {
+      var g = kind === "genomics";
+      var names = g ? ["genomics.cram_qc", "genomics.nanopore_runs", "genomics.ingest_log", "genomics.genotypes"]
+                    : ["hep.event_scores", "hep.function_log"];
+      var ev = (k[kind] || {}).since_reset, pe = prevKafka[kind];
+      var rows2 = '<tr><td>CloudEvents since reset</td><td class="' + (pe !== undefined && pe !== ev ? "chg" : "") + '">' + num(ev) + "</td></tr>" +
+        names.map(function (n) { return cell(n.replace(/^(genomics|hep)\./, ""), t[n], prevTables[n]); }).join("");
+      var lat = (L[kind] || []).slice(0, 4).map(function (r) {
+        return "<tr><td>" + esc(r.object) + "</td><td>" + esc(g ? r.rows : r.events) + "</td><td>" + esc(r.seconds) + " s</td><td>" + esc(r.principal || "") + "</td></tr>";
+      }).join("");
+      return lbl(g ? "Pipeline" : "ADFilter", "VAST DB + broker · " + esc(atText(s))) +
+        '<div class="two"><table>' + rows2 + '</table><span class="side">function stand-in: <b>' + (s.runners && s.runners[kind] ? "running" : "stopped") +
+        "</b> (uid of rlu-svc)</span></div>" +
+        (lat ? '<table class="small"><tr><th>latest object</th><th>' + (g ? "rows" : "events") + "</th><th>took</th><th>landed by</th></tr>" + lat + "</table>" : "");
+    }
+    if (kind === "quotas") {
+      var q = (v.quotas || []).map(function (x) {
+        return "<tr><td>" + esc(x.path.replace(/^\/[^\/]+/, "")) + "</td><td>" + esc(x.logical_gb) + " GB</td><td>" + esc(x.hard_gb) + " GB</td></tr>";
+      }).join("");
+      return lbl("Quotas", "read from VMS · " + esc(atText(s))) + "<table><tr><th>Path</th><th>Used</th><th>Hard limit</th></tr>" + q + "</table>";
+    }
+    return "";
+  }
+  function atText(s) { return s.ts ? new Date(s.ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : (s.at || ""); }
+  function refreshState() {
+    var boxes = slides[cur].querySelectorAll("[data-state]");
+    if (!boxes.length) return;
+    fetch("/api/state").then(function (r) { return r.json(); }).then(function (s) {
+      boxes.forEach(function (b) { b.innerHTML = s.error ? "<span>" + esc(s.error) + "</span>" : panel(b.dataset.state, s); });
+      if (!s.error) {
+        Object.keys(s.tables || {}).forEach(function (n) { prevTables[n] = s.tables[n]; });
+        Object.keys(s.kafka || {}).forEach(function (n) { prevKafka[n] = (s.kafka[n] || {}).since_reset; });
+      }
+    }).catch(function () {});
+  }
+
+  // ---------- the SFS: three arms side by side, and the spectrum
+  function refreshSfs() {
+    var box = slides[cur].querySelector("[data-sfs]");
+    if (!box) return;
+    fetch("/api/result/sfs").then(function (r) { return r.json(); }).then(function (d) {
+      var arms = [["vastdb", "VAST DB · Trino"], ["parquet", "Parquet on the same view · Trino"], ["files", "VCF on NFS · bcftools"], ["consortium", "Check: consortium AC_unrel tags"]];
+      var dig = {};
+      arms.forEach(function (a) { var x = d.arms[a[0]]; if (x && a[0] !== "consortium") dig[x.digest] = 1; });
+      var t = '<table class="arms"><tr><th>Arm</th><th>Median (s)</th><th>Answer digest</th><th>Sites × pops</th></tr>' + arms.map(function (a) {
+        var x = d.arms[a[0]];
+        return "<tr" + (a[0] === "consortium" ? ' class="chk"' : "") + "><td>" + a[1] + "</td><td>" + (x && a[0] !== "consortium" ? (x.median_s !== undefined ? x.median_s : x.seconds[x.seconds.length - 1]).toFixed(2) : "–") +
+          '</td><td class="mono">' + (x ? esc(x.digest) : "not run") + "</td><td>" + (x ? num(x.sites) : "–") + "</td></tr>";
+      }).join("") + "</table>";
+      var same = Object.keys(dig).length === 1 ? '<span class="ok">same answer on every arm run</span>' : (Object.keys(dig).length ? '<span class="warn">answers differ</span>' : "");
+      box.innerHTML = '<div class="sfsl">' + t + '<p class="note">' + same + ' · median of the runs in the latest result (n shown in the notes); warm client page cache; bcftools 96 workers × 192 regions; shared lab, one client: not a performance claim</p></div>' +
+        '<div class="sfsr"><div class="popbar">' + POPS.map(function (p) { return '<button data-pop="' + p + '" class="' + (p === pop ? "on" : "") + '">' + p + "</button>"; }).join("") +
+        "</div>" + plot(d.sfs || [], pop) + "</div>";
+      box.querySelectorAll("[data-pop]").forEach(function (b) { b.addEventListener("click", function () { pop = b.dataset.pop; refreshSfs(); }); });
+    }).catch(function () {});
+  }
+  function plot(rows, p) {
+    var K = 12, W = 660, H = 300, L = 64, B = 44, T = 16;
+    var tot = { synonymous: 0, missense: 0 }, c = { synonymous: [], missense: [] };
+    rows.forEach(function (r) { if (r[0] === p) { tot[r[1]] += r[3]; if (r[2] <= K) c[r[1]][r[2]] = r[3]; } });
+    if (!tot.synonymous) return '<p class="note">Run an arm to draw the spectrum.</p>';
+    var ymax = 0;
+    ["synonymous", "missense"].forEach(function (k) { for (var i = 1; i <= K; i++) ymax = Math.max(ymax, (c[k][i] || 0) / tot[k]); });
+    ymax = Math.ceil(ymax * 10) / 10;
+    var x = function (i) { return L + (i - 0.5) * (W - L) / K; }, y = function (v) { return T + (H - T - B) * (1 - v / ymax); };
+    var bw = (W - L) / K / 2.6, s = '<svg viewBox="0 0 ' + W + " " + H + '" class="plot">';
+    for (var g = 0; g <= 4; g++) { var gv = ymax * g / 4; s += '<line x1="' + L + '" x2="' + W + '" y1="' + y(gv) + '" y2="' + y(gv) + '" class="grid"/><text x="' + (L - 8) + '" y="' + (y(gv) + 6) + '" class="ax" text-anchor="end">' + Math.round(gv * 100) + "%</text>"; }
+    for (var i = 1; i <= K; i++) {
+      var a = (c.synonymous[i] || 0) / tot.synonymous, m = (c.missense[i] || 0) / tot.missense;
+      s += '<rect x="' + (x(i) - bw) + '" y="' + y(a) + '" width="' + bw + '" height="' + (y(0) - y(a)) + '" class="syn"/>';
+      s += '<rect x="' + x(i) + '" y="' + y(m) + '" width="' + bw + '" height="' + (y(0) - y(m)) + '" class="mis"/>';
+      s += '<text x="' + x(i) + '" y="' + (H - B + 24) + '" class="ax" text-anchor="middle">' + i + "</text>";
+    }
+    s += '<text x="' + ((L + W) / 2) + '" y="' + (H - 4) + '" class="ax" text-anchor="middle">minor-allele count (first ' + K + " classes) · " + p + "</text></svg>";
+    return s + '<p class="legend"><span class="sw syn"></span>synonymous (' + num(tot.synonymous) + ' sites) <span class="sw mis"></span>missense (' + num(tot.missense) +
+      " sites) · share of each class’s sites</p>";
+  }
+
+  function refreshAuc() {
+    var box = slides[cur].querySelector("[data-auc]");
+    if (!box || box.dataset.done) return;
+    fetch("/api/result/validation").then(function (r) { return r.json(); }).then(function (d) {
+      var sig = d.signals || {}, ks = Object.keys(sig).sort(function (a, b) { return parseInt(a.replace(/\D/g, "")) - parseInt(b.replace(/\D/g, "")); });
+      box.innerHTML = '<div class="aucrow">' + ks.map(function (k) {
+        var a = sig[k].auc_vs_sm, h = Math.max(2, Math.round((a - 0.3) / 0.7 * 160));
+        return '<div class="aucb"><span class="v">' + a.toFixed(2) + '</span><span class="bar2' + (a < 0.5 ? " lo" : "") + '" style="height:' + h + 'px"></span><span class="m">' + k.replace(/\D+(\d+).*/, "$1") + "</span></div>";
+      }).join("") + "</div>";
+      box.dataset.done = "1";
+    }).catch(function () {});
+  }
+
+  function refreshFiles() {
+    slides[cur].querySelectorAll("pre[data-file]").forEach(function (pre) {
+      fetch("/api/file/" + pre.dataset.file).then(function (r) { return r.text(); }).then(function (t) { pre.innerHTML = hl(t); });
+    });
+  }
+
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function (s, k) { s.classList.toggle("on", k === cur); });
+    renderSteps(slides[cur]); refreshFiles(); refreshState(); refreshSfs(); refreshAuc();
+    clearInterval(stateTimer);
+    if (slides[cur].querySelector("[data-state]")) stateTimer = setInterval(refreshState, 3000);
+    hud.textContent = (cur + 1) + " / " + slides.length + "   ← →  ·  N notes  ·  F full screen";
+    notes.textContent = slides[cur].dataset.notes || "";
+    history.replaceState(null, "", "#" + (cur + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { show(cur + 1); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { show(cur - 1); e.preventDefault(); }
+    else if (e.key === "n" || e.key === "N") notes.style.display = notes.style.display === "block" ? "none" : "block";
+    else if (e.key === "f" || e.key === "F") { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+  });
+
+  fetch("/api/steps").then(function (r) { return r.json(); }).then(function (l) { steps = l; })
+    .catch(function () {}).then(function () { show((parseInt(location.hash.slice(1), 10) || 1) - 1); });
+})();
+</script>
+</body>
+</html>
